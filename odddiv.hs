@@ -2,8 +2,10 @@
 {-# LANGUAGE CPP #-}
 import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.ByteString.Char8 as C
+import qualified Data.ByteString.Unsafe as BLU
 import qualified Data.IntSet as Set
 import qualified Data.IntMap as IntMap
+import Control.Monad
 import Data.Maybe(fromJust)
 import Data.Int
 import Data.Char
@@ -104,24 +106,15 @@ odddivHelper :: Int -> Int64 -> Int64 -> Int
 odddivHelper !k !begin !end = nitems u k begin end
   where u = getAk k
 
-isqrt :: Int64 -> Int
-isqrt' :: Int64 -> Int
-isqrt = fromIntegral . floor . sqrt . fromIntegral
-isqrt' = fromIntegral . ceiling . sqrt . fromIntegral
-
 odddiv :: Int -> Int64 -> Int64 -> Int
 odddiv 1 1 _ = 1
 odddiv 1 _ _ = 0
 odddiv k !begin !end
   | (not . answerableQuery) k = 0
-  | otherwise = odddivHelper k begin end -- (isqrt' begin) (isqrt end)
+  | otherwise = odddivHelper k begin end
 
+{-# INLINE odddiv' #-}
 odddiv' (Q k b e) = odddiv k b e
-
-readint :: C.ByteString -> Int
-readint64 :: C.ByteString -> Int64
-readint = fst . fromJust . C.readInt
-readint64 = fromIntegral . fst . fromJust . C.readInteger
 
 data Q = Q {
     _q_x :: {-# UNPACK #-} !Int
@@ -129,17 +122,15 @@ data Q = Q {
   , _q_z :: {-# UNPACK #-} !Int64
   }
 
-readQ s = Q (fromIntegral x) y z
-  where acc !(!x, !y, !z, !i) !c
-          | c == ' ' = (x, y, z, (succ i))
-          | i == 1 = (x*10+d, y, z, i)
-          | i == 2 = (x, y*10+d, z, i)
-          | i == 3 = (x, y, z*10+d, i)
-          where !d = fromIntegral (ord c - ord '0') :: Int64
-        !(!x, !y, !z, _) = C.foldl acc (0,0,0, 1) s
-        
-readQ' s = Q (fromIntegral a) b c
-  where (a:b:c:_) = map readint64 (C.words s)
+readQM :: C.ByteString -> Maybe Q
+readQM s =
+  (C.readInt) s >>= \(!x, s1) ->
+  (C.readInteger . BLU.unsafeTail) s1 >>= \(!y, s2) ->
+  (C.readInteger . BLU.unsafeTail) s2 >>= \(!z, _) ->
+  return $! (Q x (fromIntegral y) (fromIntegral z))
+
+{-# INLINE readQM #-}
+readQ = fromJust . readQM
 
 getinputs = map readQ . (tail . C.lines)
 
@@ -148,16 +139,15 @@ unline c = (l1, rest)
         (_, rest) = C.span (== '\n') r1
 
 {-# INLINE process1 #-}
-process1 = putStr . pr . map (odddiv' . readQ') . C.lines
+process1 = putStr . pr . map (odddiv' . readQ) . C.lines
 processall [] = return ()
 processall ccs@(c:[]) = process1 c
 processall ccs@(c1:c2:cs) = process1 c1' >> processall (c2' : cs)
   where c'@(c1', c1'') = C.breakEnd (== '\n') c1
         c2' = C.concat [c1'', c2]
 
-processinputs all = processall (c':cs)
-  where (c:cs) = L.toChunks all
-        (_, c') = unline c
+processinputs = processall . L.toChunks . L.tail . snd . L.break (== '\n')
+
 
 pr :: [Int] -> String
 pr = foldr p1 ""
