@@ -25,42 +25,33 @@ slowilogb b n = floor $ logBase b' n'
 fastilogbase b n
   | n /= (10^5) = slowilogb b n -- should remove this, for validation purpose.
   | otherwise = case IntMap.lookup b ilogans of
-    Just k -> k
+    Just !k -> k
     _ -> 1
   where ilogans = IntMap.fromList (zip p100k [16,10,7,5,4,4,4,3,3,3,3,3,3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]) :: IntMap.IntMap Int    
 
 {-# INLINE ilogb #-}
 ilogb b n = fastilogbase b n
 
+-- generate ndivisors for k^n
 genseqHelper k = zip (map (k^) [1..end]) [3,5..]
   where !end = ilogb k maxn
-
+{-# INLINE updateseq #-}
 updateseq iou (k, v) = writeArray iou k v
-genseq' k = do
-  iou <- newArray (1, maxn) 0 :: IO (IOUArray Int Int)
-  let seq = genseqHelper k
-  mapM_ (updateseq iou) seq
-  u <- unsafeFreeze iou :: IO (UArray Int Int)
-  return u
-
+-- generate ndivisors for a*b^n
 genseq1 iou (k, v) = do
   mapM_ (updateseq iou) (zip [k, 2*k..maxn] (repeat v))
-
 genseq iou k = do
   mapM_ (genseq1 iou) (genseqHelper k)
-  u <- unsafeFreeze iou :: IO (UArray Int Int)
-  return u
+  unsafeFreeze iou :: IO (UArray Int Int)
 
 sieve2 iou work k = readArray work k >>= \v -> readArray iou k >>= \u -> writeArray iou k (u*v)
 sieveodiv1 iou work k = do
   genseq work k
   mapM_ (sieve2 iou work) [k, 2*k..(maxn)]
-  return ()
-
 sieveodiv = do
   iou <- newArray (1, maxn) 1 :: IO (IOUArray Int Int)
   worker <- newArray (1, maxn) 0 :: IO (IOUArray Int Int)
-  mapM_ (sieveodiv1 iou worker) (takeWhile (<= maxn) p100k)
+  mapM_ (sieveodiv1 iou worker) p100k
   unsafeFreeze iou :: IO (UArray Int Int)
 
 goodQueries = [1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,39,45,49,51,55,57,63,65,69,75,77,81,85,87,91,93,95,99,105,115,117,119,121,125,133,135,143,147,153,161,165,169,171,175,187,189,195,207,225,231,243,245,255,273,275,285,297,315,325,343,345,351,357,363,375,385,399,405,425,429,441,455,459,495,513,525,567,585,625,675,693,729,735,765,819,825,875,891,945,1053,1125,1215,1323] :: [Int]
@@ -77,30 +68,16 @@ goodQueriesA = unsafePerformIO  goodQueriesAHelper
 answerableQuery k
   | k < 1 || k > 1323 = False
   | otherwise = (goodQueriesA ! k) /= 0
-
-ansA = unsafePerformIO sieveodiv
-
-mkAknaive u n v = listArray (1, length ua) ua :: UArray Int Int
-  where go !k
-          | k > n = []
-          | otherwise = let !c = u ! k
-                        in if c == v then k : go (succ k) else go (succ k)
-        ua = go 1
-
 lookupQueryIndex = (goodQueriesA !)
 
-mkAksnaive = listArray (1, length goodQueries) as :: Array Int (UArray Int Int)
-  where as = map (mkAknaive ansA total) goodQueries
-        total = 100000
-
-list2UArray s = listArray (1, length s) s :: UArray Int Int
-
-lookupArrayIndex' = fromJust . (flip IntMap.lookup map)
-  where map = IntMap.fromList (zip goodQueries [1..]) :: IntMap.IntMap Int
+-- | build answers array
+ansA = unsafePerformIO sieveodiv
 
 lookupArrayIndex !k = (amap ! k)
   where amap = listArray (1, last goodQueries) [1,0,2,0,3,0,4,0,5,0,6,0,7,0,8,0,9,0,10,0,11,0,12,0,13,0,14,0,15,0,16,0,17,0,18,0,0,0,19,0,0,0,0,0,20,0,0,0,21,0,22,0,0,0,23,0,24,0,0,0,0,0,25,0,26,0,0,0,27,0,0,0,0,0,28,0,29,0,0,0,30,0,0,0,31,0,32,0,0,0,33,0,34,0,35,0,0,0,36,0,0,0,0,0,37,0,0,0,0,0,0,0,0,0,38,0,39,0,40,0,41,0,0,0,42,0,0,0,0,0,0,0,43,0,44,0,0,0,0,0,0,0,45,0,0,0,46,0,0,0,0,0,47,0,0,0,0,0,0,0,48,0,0,0,49,0,0,0,50,0,51,0,0,0,52,0,0,0,0,0,0,0,0,0,0,0,53,0,54,0,0,0,0,0,55,0,0,0,0,0,0,0,0,0,0,0,56,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,57,0,0,0,0,0,58,0,0,0,0,0,0,0,0,0,0,0,59,0,60,0,0,0,0,0,0,0,0,0,61,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,62,0,63,0,0,0,0,0,0,0,0,0,64,0,0,0,0,0,0,0,0,0,0,0,65,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,66,0,0,0,0,0,0,0,0,0,67,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,68,0,69,0,0,0,0,0,70,0,0,0,0,0,71,0,0,0,0,0,72,0,0,0,0,0,0,0,0,0,0,0,73,0,0,0,0,0,0,0,0,0,74,0,0,0,0,0,0,0,0,0,0,0,0,0,75,0,0,0,0,0,76,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,77,0,0,0,78,0,0,0,0,0,0,0,0,0,0,0,79,0,0,0,0,0,0,0,0,0,0,0,0,0,80,0,0,0,81,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,82,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,83,0,0,0,0,0,0,0,0,0,0,0,84,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,85,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,86,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,87,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,88,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,89,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,90,0,0,0,0,0,91,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,92,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,93,0,0,0,0,0,94,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,95,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,96,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,99,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,101] :: UArray Int Int
 
+{-# INLINE list2UArray #-}
+list2UArray s = listArray (1, length s) s :: UArray Int Int
 iter u a !k
   | k < 1 = return ()
   | otherwise = let !v = a ! k
