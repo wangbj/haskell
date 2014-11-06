@@ -80,7 +80,7 @@ iter u a !k
   | k < 1 = return ()
   | otherwise = let !v = a ! k
                     !i = lookupArrayIndex v
-                in readArray u i >>= \s -> writeArray u i (v:s) >> iter u a (pred k)
+                in readArray u i >>= \s -> writeArray u i (k:s) >> iter u a (pred k)
 
 mkAks' = do
   initu <- newArray (1, length goodQueries) [] :: IO (IOArray Int [Int])
@@ -114,14 +114,16 @@ odddivHelper !k !begin !end = nitems u k begin end
   where u = getAk k
 
 isqrt :: Int64 -> Int
+isqrt' :: Int64 -> Int
 isqrt = fromIntegral . floor . sqrt . fromIntegral
+isqrt' = fromIntegral . ceiling . sqrt . fromIntegral
 
 odddiv :: Int -> Int64 -> Int64 -> Int
 odddiv 1 1 _ = 1
 odddiv 1 _ _ = 0
 odddiv k !begin !end
   | (not . answerableQuery) k = 0
-  | otherwise = odddivHelper k (isqrt begin) (isqrt end)
+  | otherwise = odddivHelper k (isqrt' begin) (isqrt end)
 
 odddiv' (Q k b e) = odddiv k b e
 
