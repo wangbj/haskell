@@ -35,11 +35,9 @@ ilogb b n = fastilogbase b n
 -- generate ndivisors for k^n
 genseqHelper k = zip (map (k^) [1..end]) [3,5..]
   where !end = ilogb k maxn
-{-# INLINE updateseq #-}
-updateseq iou (k, v) = writeArray iou k v
 -- generate ndivisors for a*b^n
 genseq1 iou (k, v) = do
-  mapM_ (updateseq iou) (zip [k, 2*k..maxn] (repeat v))
+  mapM_ (uncurry (writeArray iou)) (zip [k, 2*k..maxn] (repeat v))
 genseq iou k = do
   mapM_ (genseq1 iou) (genseqHelper k)
   unsafeFreeze iou :: IO (UArray Int Int)
