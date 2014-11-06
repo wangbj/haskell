@@ -72,7 +72,7 @@ iter u a !k
   | k < 1 = return ()
   | otherwise = let !v = a ! k
                     !i = lookupArrayIndex v
-                    !ks = fromIntegral . (^2)
+                    !ks = (^2) . fromIntegral
                 in readArray u i >>= \s -> writeArray u i ((ks k):s) >> iter u a (pred k)
 
 mkAks' = do
@@ -132,12 +132,6 @@ readQM s =
 {-# INLINE readQM #-}
 readQ = fromJust . readQM
 
-getinputs = map readQ . (tail . C.lines)
-
-unline c = (l1, rest)
-  where (l1, r1) = C.break (== '\n') c
-        (_, rest) = C.span (== '\n') r1
-
 {-# INLINE process1 #-}
 process1 = putStr . pr . map (odddiv' . readQ) . C.lines
 processall [] = return ()
@@ -148,12 +142,10 @@ processall ccs@(c1:c2:cs) = process1 c1' >> processall (c2' : cs)
 
 processinputs = processall . L.toChunks . L.tail . snd . L.break (== '\n')
 
-
 pr :: [Int] -> String
 pr = foldr p1 ""
   where p1 x = shows x . showString "\n"
 
-process = putStr . pr . map odddiv' . getinputs
 main = L.getContents >>= processinputs
 
 --
