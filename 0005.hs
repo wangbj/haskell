@@ -3,6 +3,8 @@
 import qualified Data.ByteString.Char8 as C
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
+--import Data.ByteString.Builder
+--import Data.ByteString.Builder.ASCII
 import Control.Monad.Primitive
 import Control.Monad
 import Data.List
@@ -24,16 +26,6 @@ isPalin x = go x 0 ( (pred . V.length) x)
             True -> go v (succ s) (pred e)
             _ -> False
                                       
-
-nextPalin x = go x 0 ( (pred . V.length) x) False
-  where go v !s !e c
-          | s >= e = v
-          | otherwise = if c then go (v V.// [(s, succ (v V.! s))]) s e False
-                        else case compare (v V.! s) (v V.! e) of
-                          EQ -> go v (succ s) (pred e) c
-                          GT -> go (v V.// [(e, (v V.! e))]) (succ s) (pred e) c
-                          LT -> go (v V.// [(e, (v V.! s))]) (succ s) (pred e) True
-
 fromBSM :: C.ByteString -> IO (V.MVector (PrimState IO)  Int)
 fromBSM = V.unsafeThaw . fromBS
 
@@ -52,12 +44,15 @@ nextPalinM x = go x 0 (pred . MV.length $ x)
               LT -> do
                 let s' = succ s
                     e' = pred e
-                v3 <- MV.read m s'
-                MV.write m e v1
-                when (s' < e') ( MV.write m (succ s) (succ v3) )
+                v1' <- MV.read m s'
+                if (s < e && v1' < 9) then do
+                  if s' < e' then MV.write m e v1 else MV.write m s (succ v1) >> MV.write m e (succ v1)
+                  else do
+                  MV.write m s v2
                 go m (succ s) (pred e)
         go :: PalinM -> Int -> Int -> IO ()
-            
+
+c1 = C.pack "2134"
             
 nextPalinMut :: C.ByteString -> IO Palin
 nextPalinMut c = do
@@ -66,3 +61,15 @@ nextPalinMut c = do
   nextPalinM v2
   v3 <- V.unsafeFreeze v2 :: IO Palin
   return v3
+
+doNextPalin_ :: C.ByteString -> IO ()
+doNextPalin_ s = nextPalinMut s >>= \r ->
+  (putStrLn . V.toList . V.map (\x -> chr (x + ord '0'))) r
+
+getinputs s = C.lines rest
+  where (_, t1) = C.break (== '\n') s
+        (_, rest) = C.span (== '\n') t1
+
+process = mapM_ doNextPalin_ . getinputs
+
+main = C.getContents >>= process
