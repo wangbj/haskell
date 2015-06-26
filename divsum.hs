@@ -46,9 +46,14 @@ readint = fst . fromJust . C.readInt
 
 getinputs = map readint . tail . C.lines
 
+pr :: [Int] -> String
+pr = foldr p1 ""
+  where p1 x = shows x . showString "\n"
+        {-# INLINE p1 #-}
+
 process inputs = do
   ans <- mkAns 1 maxn
   let ins = getinputs inputs
-  mapM_ (print . (ans !)) ins
+  putStr . pr $ map (ans!) ins
 
 main = C.getContents >>= process
