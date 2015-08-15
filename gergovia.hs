@@ -1,9 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
 import qualified Data.ByteString.Char8 as C
-import qualified Data.IntMap as IntMap
-import qualified Data.Set as Set
-import Data.IntMap(IntMap)
-import Data.Set(Set)
 import Data.Int
 import Data.Maybe
 
