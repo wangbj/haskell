@@ -1,12 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 import qualified Data.ByteString.Char8 as C
-import qualified Data.Foldable as F
 import qualified Data.IntMap.Strict as IntMap
-import qualified Data.IntSet as IntSet
-import qualified Data.List as L
 import Data.IntMap.Strict(IntMap)
-import Data.IntSet(IntSet)
-import Data.Array.Unboxed
 import Data.Maybe
 import Data.Int
 
