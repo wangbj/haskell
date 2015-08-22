@@ -140,7 +140,7 @@ buildGraph s = MyGraph src sink (length lefts) (length rights) leftu (IntSet.emp
         (!l2, !s2) = C.break (== '\n') (C.tail s1)
         (!numNodes, !numEdges) = readP2 l1
         (!lefts, !rights) = splitNodes (map readint (C.words l2))
-        !leftu = mkLefts src sink lefts
+        !leftu = mkLefts src sink (src:lefts)
         edges = filter (\(from, to, w) -> not (isLeftNode leftu from && isLeftNode leftu to)) . readEdges numEdges . C.tail $ s2
         extEdges = extendGraph src sink lefts rights
         !sink = 1 + numNodes
