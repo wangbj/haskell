@@ -93,8 +93,6 @@ search n = do
       y = cf !!! j
   return $! dec2 x y
 
-
-
 acs :: [MQ] -> Builder
 acs mq = evalState (foldM go mempty mq) initMapping
   where go z r@(R x y) = get >>= \mapping -> put (update mapping r) >> return z
