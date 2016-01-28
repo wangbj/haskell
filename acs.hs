@@ -58,7 +58,7 @@ locate x = (succ r, succ c)
   where (r, c) = (pred x) `quotRem` ncols
 
 value :: Int -> Int -> Int
-value i j = 1 + (i-1) * 5678 + (j-1)
+value i j = 1 + (i-1) * ncols + (j-1)
 
 readint = fst . fromJust . C.readInt
 readpair c s = fromJust $
@@ -92,6 +92,8 @@ search n = do
       x = rf !!! i
       y = cf !!! j
   return $! dec2 x y
+
+
 
 acs :: [MQ] -> Builder
 acs mq = evalState (foldM go mempty mq) initMapping
