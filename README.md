@@ -1,4 +1,4 @@
 haskell
 =======
 
-misc haskell code
+Haskell solutions (ACed) to some problem on spoj.com.
